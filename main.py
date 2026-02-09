@@ -6,7 +6,7 @@ import re
 class FotoDruckTool:
     def __init__(self, root):
         self.root = root
-        self.root.title("Portrait-Pro-Tool v4.0")
+        self.root.title("Portrait-Pro-Tool v4.2")
         
         # --- KONFIGURATION ---
         self.DPI = 300
@@ -21,11 +21,11 @@ class FotoDruckTool:
         self.COL_WHITE, self.COL_BLACK = "#FFFFFF", "#000000"
         self.COL_GREEN, self.COL_RED = "#008000", "#eb0000"
         
-        # NEU: Fixer Abstand zur 7x9-Außenkante auf 3.5mm korrigiert
         self.FIXED_DISTANCE_MM = 3.5   
-        self.FIXED_TOP_P_MM = 1.0      # Starre 1mm Box-Erweiterung oben
+        self.FIXED_TOP_P_MM = 1.0      
         
-        self.TRI_SIZE = int(max(self.PHOTO_W, self.PHOTO_H) / 3)
+        # NEU: Katheten auf 50% der KÜRZESTEN Seite (7cm * 0.50 = 3.5cm)
+        self.TRI_SIZE = int(min(self.PHOTO_W, self.PHOTO_H) * 0.50)
         self.LINE_WIDTH_PX = 1         
         
         self.placeholder = "Nachname, Vorname(n) rec. am TT.MM.YYYY"
@@ -33,7 +33,7 @@ class FotoDruckTool:
         self.pan_x, self.pan_y = 0, 0
         self.debounce_id = None
         
-        # UI
+        # UI Setup
         frame_controls = tk.Frame(root); frame_controls.pack(pady=5)
         tk.Button(frame_controls, text="Bild laden", command=self.load_image).grid(row=0, column=0, padx=5)
         
@@ -76,11 +76,9 @@ class FotoDruckTool:
         rect_h = 0
         if has_t and self.text_pos_var.get() == "below":
             current_bottom_mm = self.FIXED_DISTANCE_MM - self.border_val.get()
-            bottom_p = int(current_bottom_mm / 10 * self.CM_TO_PX)
-            top_p = int(self.FIXED_TOP_P_MM / 10 * self.CM_TO_PX)
+            bottom_p, top_p = int(current_bottom_mm / 10 * self.CM_TO_PX), int(self.FIXED_TOP_P_MM / 10 * self.CM_TO_PX)
             
             fs = 1; font = ImageFont.truetype("arial.ttf", fs)
-            # Textbreite basierend auf fixem Außenabstand 3.5mm
             target_w = self.PHOTO_W - (2 * int(self.FIXED_DISTANCE_MM / 10 * self.CM_TO_PX))
             while font.getbbox(text)[2] - font.getbbox(text)[0] < target_w and fs < 400:
                 fs += 1; font = ImageFont.truetype("arial.ttf", fs)
@@ -89,7 +87,6 @@ class FotoDruckTool:
         avail_h = eff_h - rect_h
         ratio_t, ratio_i = eff_w / avail_h, self.raw_img.width / self.raw_img.height
         self.current_scale = avail_h / self.raw_img.height if ratio_i > ratio_t else eff_w / self.raw_img.width
-        
         self.pan_x = max(0, min(self.raw_img.width * self.current_scale - eff_w, self.pan_x))
         self.pan_y = max(0, min(self.raw_img.height * self.current_scale - avail_h, self.pan_y))
 
@@ -139,10 +136,8 @@ class FotoDruckTool:
     def create_final_image(self):
         border_mm = self.border_val.get()
         border_px = int(border_mm / 10 * self.CM_TO_PX)
-        
-        # Einzug Berechnung: 3.5mm Distanz zur Kante fixiert
         current_pad_mm = self.FIXED_DISTANCE_MM - border_mm
-        side_p = bottom_p = int(current_pad_mm / 10 * self.CM_TO_PX)
+        side_p, bottom_p = int(current_pad_mm / 10 * self.CM_TO_PX), int(current_pad_mm / 10 * self.CM_TO_PX)
         top_p = int(self.FIXED_TOP_P_MM / 10 * self.CM_TO_PX)
         
         eff_w, eff_h = self.PHOTO_W - (2 * border_px), self.PHOTO_H - (2 * border_px)
@@ -162,7 +157,6 @@ class FotoDruckTool:
         
         s_w, s_h = int(self.raw_img.width * self.current_scale), int(self.raw_img.height * self.current_scale)
         resized = self.raw_img.resize((s_w, s_h), Image.Resampling.LANCZOS)
-        
         self.pan_x = max(0, min(s_w - eff_w, self.pan_x))
         self.pan_y = max(0, min(s_h - avail_h, self.pan_y))
         
@@ -179,9 +173,7 @@ class FotoDruckTool:
             ry0 = eff_h - rect_h
             if not is_below: draw_cont.rectangle([0, ry0, eff_w, eff_h], fill=self.COL_WHITE)
             tw = font.getbbox(text)[2] - font.getbbox(text)[0]
-            tx = side_p + ((eff_w - 2*side_p - tw)//2)
-            ty = eff_h - bottom_p - font_h
-            draw_cont.text((tx, ty), text, fill=self.COL_BLACK, font=font)
+            draw_cont.text((side_p + ((eff_w - 2*side_p - tw)//2), eff_h - bottom_p - font_h), text, fill=self.COL_BLACK, font=font)
         
         nutzbild.paste(content, (border_px, border_px))
         
