@@ -151,9 +151,22 @@ class SettingsWindow(tk.Toplevel):
 
     def save_and_close(self):
         try:
-            total_pct = sum(float(self.color_rows[i]["ent"].get()) for i in range(self.mode_var.get()))
+            # Read percentage entries robustly (accept comma as decimal, empty->0)
+            vals = []
+            for i in range(self.mode_var.get()):
+                s = self.color_rows[i]["ent"].get().strip()
+                if not s:
+                    s = "0"
+                s = s.replace(',', '.')
+                try:
+                    v = float(s)
+                except Exception:
+                    messagebox.showerror("Fehler - Coleur", f"Ungültiger Prozentwert in Coleur #{i+1}: '{self.color_rows[i]['ent'].get()}'")
+                    return
+                vals.append(v)
+            total_pct = sum(vals)
             if abs(total_pct - 100.0) > 0.01:
-                messagebox.showerror("Fehler", f"Summe muss 100% ergeben! (Aktuell: {total_pct:.2f}%)")
+                messagebox.showerror("Fehler - Coleur", f"Die Summe der Coleur-Anteile muss 100% ergeben. Aktuell: {total_pct:.2f}%")
                 return
 
             self.config["photo_h_mm"] = float(self.ent_ph.get())
@@ -168,7 +181,12 @@ class SettingsWindow(tk.Toplevel):
                 self.config["fixed_top_p_mm"] = float(self.ent_top_p.get())
             
             for i in range(self.config["bund_mode"]):
-                self.config["percentages"][i] = float(self.color_rows[i]["ent"].get())
+                # use already-parsed vals if available
+                if i < len(vals):
+                    self.config["percentages"][i] = vals[i]
+                else:
+                    s = self.color_rows[i]["ent"].get().strip().replace(',', '.') or '0'
+                    self.config["percentages"][i] = float(s)
 
             ConfigHandler.save(self.config)
             self.callback(); self.destroy()
