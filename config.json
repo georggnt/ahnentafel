@@ -12,6 +12,15 @@
         "#FFFFFF",
         "#FFFFFF"
     ],
+    "percentages": [
+        25.0,
+        25.0,
+        25.0,
+        25.0,
+        0.0,
+        0.0
+    ],
+    "custom_pct": false,
     "fixed_distance_mm": 3.5,
     "fixed_top_p_mm": 0.35,
     "border_default_mm": 1.0

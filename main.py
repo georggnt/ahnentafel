@@ -260,12 +260,15 @@ class PortraitProApp:
         self.TRI_SIZE = int(min(self.PHOTO_W, self.PHOTO_H) * 0.50)
         self.raw_img, self.current_scale = None, 1.0
         self.pan_x = self.pan_y = self.last_x = self.last_y = 0
+        self.debounce_id = None
 
         ctrl = tk.Frame(self.main_frame); ctrl.pack(pady=5)
         tk.Button(ctrl, text="Bild laden", command=self.load_image).grid(row=0, column=0, padx=10)
         tk.Label(ctrl, text="Rahmen:").grid(row=0, column=1)
         self.border_val = tk.DoubleVar(value=self.config["border_default_mm"])
         tk.Scale(ctrl, from_=0, to=3.0, resolution=0.5, orient=tk.HORIZONTAL, variable=self.border_val, command=self.on_setting_change).grid(row=0, column=2, padx=5)
+        self.border_label = tk.Label(ctrl, text=f"{self.border_val.get():.1f} mm")
+        self.border_label.grid(row=0, column=4, padx=6)
         self.use_triangle_var = tk.BooleanVar(value=False)
         tk.Checkbutton(ctrl, text="Dreieck", variable=self.use_triangle_var, command=self.update_preview).grid(row=0, column=3)
 
@@ -279,7 +282,7 @@ class PortraitProApp:
         self.entry_text.pack(pady=5)
 
         pos_frame = tk.Frame(self.main_frame); pos_frame.pack()
-        self.text_pos_var = tk.StringVar(value="below")
+        self.text_pos_var = tk.StringVar(value="overlay")
         tk.Radiobutton(pos_frame, text="Overlay", variable=self.text_pos_var, value="overlay", command=self.on_setting_change).pack(side="left")
         tk.Radiobutton(pos_frame, text="Darunter", variable=self.text_pos_var, value="below", command=self.on_setting_change).pack(side="left")
 
@@ -402,7 +405,14 @@ class PortraitProApp:
         self.pan_x = max(0, min(self.raw_img.width * self.current_scale - eff_w, self.pan_x))
         self.pan_y = max(0, min(self.raw_img.height * self.current_scale - avail_h, self.pan_y))
 
-    def on_setting_change(self, *a): self.recalc_image_fit(); self.update_preview()
+    def on_setting_change(self, *a):
+        # update border label if present
+        if hasattr(self, 'border_label'):
+            try:
+                self.border_label.config(text=f"{self.border_val.get():.1f} mm")
+            except Exception:
+                pass
+        self.recalc_image_fit(); self.update_preview()
     def on_text_key_release(self, e):
         if self.debounce_id: self.root.after_cancel(self.debounce_id)
         self.debounce_id = self.root.after(1000, lambda: [self.recalc_image_fit(), self.update_preview()])
