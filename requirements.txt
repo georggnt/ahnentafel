@@ -1,0 +1,2 @@
+Pillow  # Bildverarbeitung
+tkinterdnd2   # Optional für Drag & Drop Unterstützung (falls installiert)
