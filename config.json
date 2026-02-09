@@ -1,0 +1,18 @@
+{
+    "photo_h_mm": 90.0,
+    "photo_w_mm": 70.0,
+    "canvas_h_cm": 15.0,
+    "canvas_w_cm": 10.0,
+    "bund_mode": 4,
+    "colors": [
+        "#FFFFFF",
+        "#008000",
+        "#eb0000",
+        "#FFFFFF",
+        "#FFFFFF",
+        "#FFFFFF"
+    ],
+    "fixed_distance_mm": 3.5,
+    "fixed_top_p_mm": 0.35,
+    "border_default_mm": 1.0
+}
