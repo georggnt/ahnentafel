@@ -6,7 +6,7 @@ import re
 class FotoDruckTool:
     def __init__(self, root):
         self.root = root
-        self.root.title("Portrait-Pro-Tool v4.2")
+        self.root.title("Portrait-Pro-Tool v4.4")
         
         # --- KONFIGURATION ---
         self.DPI = 300
@@ -21,10 +21,11 @@ class FotoDruckTool:
         self.COL_WHITE, self.COL_BLACK = "#FFFFFF", "#000000"
         self.COL_GREEN, self.COL_RED = "#008000", "#eb0000"
         
+        # Geometrie & Fixierte Abstände
         self.FIXED_DISTANCE_MM = 3.5   
-        self.FIXED_TOP_P_MM = 1.0      
+        # NEU: Oberer Puffer auf 0.35 mm reduziert
+        self.FIXED_TOP_P_MM = 0.35      
         
-        # NEU: Katheten auf 50% der KÜRZESTEN Seite (7cm * 0.50 = 3.5cm)
         self.TRI_SIZE = int(min(self.PHOTO_W, self.PHOTO_H) * 0.50)
         self.LINE_WIDTH_PX = 1         
         
@@ -38,7 +39,7 @@ class FotoDruckTool:
         tk.Button(frame_controls, text="Bild laden", command=self.load_image).grid(row=0, column=0, padx=5)
         
         tk.Label(frame_controls, text="Rahmen (mm):").grid(row=0, column=1)
-        self.border_val = tk.DoubleVar(value=3.0)
+        self.border_val = tk.DoubleVar(value=1.0)
         tk.Scale(frame_controls, from_=0, to=3.0, resolution=0.5, orient=tk.HORIZONTAL, variable=self.border_val, command=self.on_setting_change).grid(row=0, column=2, padx=5)
 
         self.use_triangle_var = tk.BooleanVar(value=False)
@@ -57,7 +58,9 @@ class FotoDruckTool:
         tk.Radiobutton(frame_radio, text="Text unter Bild", variable=self.text_pos_var, value="below", command=self.on_setting_change).pack(side=tk.LEFT)
         
         self.preview_scale = 0.2 
-        self.canvas = tk.Canvas(root, width=self.PHOTO_W * self.preview_scale, height=self.PHOTO_H * self.preview_scale, bg=self.COL_WHITE, highlightthickness=1, highlightbackground="gray")
+        self.canvas_w_preview = int(self.PHOTO_W * self.preview_scale)
+        self.canvas_h_preview = int(self.PHOTO_H * self.preview_scale)
+        self.canvas = tk.Canvas(root, width=self.canvas_w_preview, height=self.canvas_h_preview, bg=self.COL_WHITE, highlightthickness=0)
         self.canvas.pack(pady=10)
         self.canvas.bind("<B1-Motion>", self.on_drag); self.canvas.bind("<Button-1>", self.on_click)
 
@@ -87,6 +90,7 @@ class FotoDruckTool:
         avail_h = eff_h - rect_h
         ratio_t, ratio_i = eff_w / avail_h, self.raw_img.width / self.raw_img.height
         self.current_scale = avail_h / self.raw_img.height if ratio_i > ratio_t else eff_w / self.raw_img.width
+        
         self.pan_x = max(0, min(self.raw_img.width * self.current_scale - eff_w, self.pan_x))
         self.pan_y = max(0, min(self.raw_img.height * self.current_scale - avail_h, self.pan_y))
 
@@ -160,7 +164,7 @@ class FotoDruckTool:
         self.pan_x = max(0, min(s_w - eff_w, self.pan_x))
         self.pan_y = max(0, min(s_h - avail_h, self.pan_y))
         
-        crop = resized.crop((self.pan_x, self.pan_y, self.pan_x + eff_w, self.pan_y + avail_h))
+        crop = resized.crop((int(self.pan_x), int(self.pan_y), int(self.pan_x + eff_w), int(self.pan_y + avail_h)))
         
         nutzbild = Image.new("RGB", (self.PHOTO_W, self.PHOTO_H), self.COL_WHITE)
         draw_nutz = ImageDraw.Draw(nutzbild)
@@ -189,8 +193,10 @@ class FotoDruckTool:
         if not self.raw_img: return
         final = self.create_final_image()
         crop_p = final.crop((0, 0, self.PHOTO_W, self.PHOTO_H))
-        self.tk_img = ImageTk.PhotoImage(crop_p.resize((int(self.PHOTO_W * self.preview_scale), int(self.PHOTO_H * self.preview_scale)), Image.Resampling.LANCZOS))
-        self.canvas.delete("all"); self.canvas.create_image(0, 0, anchor="nw", image=self.tk_img)
+        preview_resized = crop_p.resize((self.canvas_w_preview, self.canvas_h_preview), Image.Resampling.LANCZOS)
+        self.tk_img = ImageTk.PhotoImage(preview_resized)
+        self.canvas.delete("all")
+        self.canvas.create_image(0, 0, anchor="nw", image=self.tk_img)
 
     def save_check(self):
         if not self.raw_img: return
