@@ -59,7 +59,11 @@ class SettingsWindow(tk.Toplevel):
         self.title("Einstellungen v1.1.0")
         self.callback = callback
         self.is_initial = is_initial
-        self.config = ConfigHandler.load() or ConfigHandler.get_default()
+        # Start from defaults and overlay any saved values (keeps missing keys)
+        self.config = ConfigHandler.get_default()
+        loaded = ConfigHandler.load()
+        if loaded:
+            self.config.update(loaded)
         
         self.grab_set()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -100,13 +104,13 @@ class SettingsWindow(tk.Toplevel):
         self.custom_pct_var = tk.BooleanVar(value=self.config.get("custom_pct", False))
         tk.Checkbutton(container, text="Erweitert (Abstände & Prozente)", variable=self.custom_pct_var, command=self.update_advanced_ui).grid(row=2, column=2)
 
-        # Container für erweiterte Abstände
-        self.adv_spacing_frame = tk.Frame(container)
-        self.adv_spacing_frame.grid(row=3, column=0, columnspan=3, sticky="ew", pady=5)
-        
-        # Container für Farben
+        # Container für Farben (Coleur) - stacked rows
         self.color_frame = tk.LabelFrame(container, text="Coleur (Oben -> Unten)", padx=10, pady=10)
-        self.color_frame.grid(row=4, column=0, columnspan=3, sticky="ew", pady=10)
+        self.color_frame.grid(row=3, column=0, columnspan=3, sticky="ew", pady=10)
+
+        # Container für erweiterte Abstände (placed below the Coleur box)
+        self.adv_spacing_frame = tk.Frame(container)
+        self.adv_spacing_frame.grid(row=4, column=0, columnspan=3, sticky="ew", pady=5)
         
         self.color_rows = []
         self.update_advanced_ui()
@@ -134,20 +138,38 @@ class SettingsWindow(tk.Toplevel):
             for i, val in enumerate(defaults): self.config["percentages"][i] = val
 
         for i in range(num):
-            btn = tk.Button(self.color_frame, bg=self.config["colors"][i], width=12, text=f"Farbe {i+1}", relief="flat", command=lambda idx=i: self.pick_color(idx))
+            btn = tk.Button(self.color_frame, bg=self.config["colors"][i], width=12, text=f"Farbe {i+1}", relief="flat")
             btn.grid(row=i, column=0, padx=5, pady=2, sticky='w')
             ent = tk.Entry(self.color_frame, width=8)
-            ent.insert(0, f"{self.config['percentages'][i]:.2f}")
+            # ensure percentages list has enough entries
+            try:
+                ent.insert(0, f"{self.config['percentages'][i]:.2f}")
+            except Exception:
+                ent.insert(0, "0.00")
             ent.grid(row=i, column=1, padx=5)
             tk.Label(self.color_frame, text="%").grid(row=i, column=2)
-            # Always allow editing percentages (user requested editable without 'Erweitert')
+            # bind click handler with button widget to avoid index races
+            btn.config(command=(lambda b=btn, idx=i: self.pick_color(idx, b)))
             self.color_rows.append({"btn": btn, "ent": ent})
 
-    def pick_color(self, idx):
-        color = colorchooser.askcolor(initialcolor=self.config["colors"][idx])[1]
+    def pick_color(self, idx, btn_widget=None):
+        color = colorchooser.askcolor(initialcolor=self.config.get("colors", ["#FFFFFF"] * (idx+1))[idx])[1]
         if color:
+            # ensure colors list is big enough
+            while len(self.config.get("colors", [])) <= idx:
+                self.config.setdefault("colors", []).append("#FFFFFF")
             self.config["colors"][idx] = color
-            self.color_rows[idx]["btn"].config(bg=color)
+            if btn_widget:
+                try:
+                    btn_widget.config(bg=color)
+                    return
+                except Exception:
+                    pass
+            if idx < len(self.color_rows):
+                try:
+                    self.color_rows[idx]["btn"].config(bg=color)
+                except Exception:
+                    pass
 
     def save_and_close(self):
         try:
