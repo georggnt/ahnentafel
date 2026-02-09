@@ -134,12 +134,13 @@ class SettingsWindow(tk.Toplevel):
             for i, val in enumerate(defaults): self.config["percentages"][i] = val
 
         for i in range(num):
-            row = tk.Frame(self.color_frame); row.pack(fill="x", pady=2)
-            btn = tk.Button(row, bg=self.config["colors"][i], width=12, text=f"Farbe {i+1}", relief="flat", command=lambda idx=i: self.pick_color(idx))
-            btn.pack(side="left", padx=5)
-            ent = tk.Entry(row, width=8); ent.insert(0, f"{self.config['percentages'][i]:.2f}"); ent.pack(side="left")
-            tk.Label(row, text="%").pack(side="left")
-            if not self.custom_pct_var.get(): ent.config(state="disabled")
+            btn = tk.Button(self.color_frame, bg=self.config["colors"][i], width=12, text=f"Farbe {i+1}", relief="flat", command=lambda idx=i: self.pick_color(idx))
+            btn.grid(row=i, column=0, padx=5, pady=2, sticky='w')
+            ent = tk.Entry(self.color_frame, width=8)
+            ent.insert(0, f"{self.config['percentages'][i]:.2f}")
+            ent.grid(row=i, column=1, padx=5)
+            tk.Label(self.color_frame, text="%").grid(row=i, column=2)
+            # Always allow editing percentages (user requested editable without 'Erweitert')
             self.color_rows.append({"btn": btn, "ent": ent})
 
     def pick_color(self, idx):
@@ -198,20 +199,17 @@ class PortraitProApp:
 
     def init_main_ui(self):
         self.root.title(f"Ahnentafel Optimaldruck v1.1.0")
-        self.main_frame = tk.Frame(self.root, padx=10, pady=10); self.main_frame.pack()
-        
-        menubar = tk.Menu(self.root)
-        # Clicking 'Optionen' opens Einstellungen directly
-        menubar.add_command(label="Optionen", command=self.show_settings_menu)
-        self.root.config(menu=menubar)
-
-        # Info (version + GitHub link)
-        info_frame = tk.Frame(self.main_frame)
-        info_frame.pack(anchor='e')
-        tk.Label(info_frame, text="v1.1.0").pack(side=tk.LEFT)
-        gh_link = tk.Label(info_frame, text="GitHub", fg="blue", cursor="hand2")
-        gh_link.pack(side=tk.LEFT, padx=6)
+        # Top bar with Optionen + version + GitHub link on one line
+        top_bar = tk.Frame(self.root)
+        top_bar.pack(fill='x')
+        tk.Button(top_bar, text="Optionen", command=self.show_settings_menu).pack(side='left', padx=6, pady=2)
+        tk.Label(top_bar, text="v1.1.0").pack(side='left', padx=6)
+        gh_link = tk.Label(top_bar, text="GitHub", fg="blue", cursor="hand2")
+        gh_link.pack(side='left')
         gh_link.bind("<Button-1>", lambda e: webbrowser.open("https://github.com/georggnt/ahnentafel"))
+
+        self.main_frame = tk.Frame(self.root, padx=10, pady=10)
+        self.main_frame.pack()
 
         self.DPI = 300
         self.MM_TO_PX = self.DPI / 25.4
