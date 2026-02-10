@@ -89,17 +89,21 @@ class SettingsWindow(tk.Toplevel):
 
         # Maße (H x B with tighter spacing)
         tk.Label(container, text="Foto-Maß (mm):", font=('Arial', 9, 'bold')).grid(row=0, column=0, sticky="w")
-        self.ent_ph = tk.Entry(container, width=8); self.ent_ph.insert(0, f"{self.config['photo_h_mm']:.2f}")
+        self.ent_ph = tk.Entry(container, width=8)
+        self.ent_ph.insert(0, f"{self.config['photo_h_mm']:.2f}")
         self.ent_ph.grid(row=0, column=1, pady=5)
         tk.Label(container, text=" H x B ").grid(row=0, column=2)
-        self.ent_pw = tk.Entry(container, width=8); self.ent_pw.insert(0, f"{self.config['photo_w_mm']:.2f}")
+        self.ent_pw = tk.Entry(container, width=8)
+        self.ent_pw.insert(0, f"{self.config['photo_w_mm']:.2f}")
         self.ent_pw.grid(row=0, column=3, pady=5)
 
         tk.Label(container, text="Druck-Format (cm):", font=('Arial', 9, 'bold')).grid(row=1, column=0, sticky="w")
-        self.ent_ch = tk.Entry(container, width=8); self.ent_ch.insert(0, f"{self.config['canvas_h_cm']:.2f}")
+        self.ent_ch = tk.Entry(container, width=8)
+        self.ent_ch.insert(0, f"{self.config['canvas_h_cm']:.2f}")
         self.ent_ch.grid(row=1, column=1, pady=5)
         tk.Label(container, text=" H x B ").grid(row=1, column=2)
-        self.ent_cw = tk.Entry(container, width=8); self.ent_cw.insert(0, f"{self.config['canvas_w_cm']:.2f}")
+        self.ent_cw = tk.Entry(container, width=8)
+        self.ent_cw.insert(0, f"{self.config['canvas_w_cm']:.2f}")
         self.ent_cw.grid(row=1, column=3, pady=5)
 
         tk.Label(container, text="Farbanzahl:", font=('Arial', 9, 'bold')).grid(row=2, column=0, sticky="w", pady=10)
@@ -137,43 +141,7 @@ class SettingsWindow(tk.Toplevel):
 
         # Advanced settings frame (hidden unless checkbox enabled)
         self.adv_frame = tk.LabelFrame(container, text="Erweiterte Einstellungen", padx=10, pady=8)
-        # entries: Einzug zu den Seiten, Einzug/Abstand nach unten, Puffer nach oben
-        tk.Label(self.adv_frame, text="Einzug zu den Seiten (mm):").grid(row=0, column=0, sticky="w")
-        self.ent_side = tk.Entry(self.adv_frame, width=8)
-        self.ent_side.insert(0, f"{self.config.get('fixed_distance_mm', 3.5):.2f}")
-        self.ent_side.grid(row=0, column=1, sticky="w")
-
-        tk.Label(self.adv_frame, text="Einzug/Abstand nach unten (mm):").grid(row=1, column=0, sticky="w")
-        self.ent_bottom = tk.Entry(self.adv_frame, width=8)
-        self.ent_bottom.insert(0, f"{self.config.get('fixed_bottom_mm', 3.5):.2f}")
-        self.ent_bottom.grid(row=1, column=1, sticky="w")
-
-        tk.Label(self.adv_frame, text="Puffer nach oben (mm):").grid(row=2, column=0, sticky="w")
-        self.ent_top = tk.Entry(self.adv_frame, width=8)
-        self.ent_top.insert(0, f"{self.config.get('fixed_top_p_mm', 0.35):.2f}")
-        self.ent_top.grid(row=2, column=1, sticky="w")
-
-        tk.Label(self.adv_frame, text="Text-Hintergrundfarbe:").grid(row=3, column=0, sticky="w")
-        self.text_bg = tk.StringVar(value=self.config.get("text_bg_color", "#FFFFFF"))
-        self.text_bg_btn = tk.Button(self.adv_frame, text="Farbe wählen", command=self._pick_text_bg)
-        self.text_bg_btn.grid(row=3, column=1, sticky="w")
-
-        tk.Label(self.adv_frame, text="Dreieck-Hypotenuse (%):").grid(row=4, column=0, sticky="w")
-        self.ent_tri = tk.Entry(self.adv_frame, width=8)
-        self.ent_tri.insert(0, f"{self.config.get('triangle_percent', 50.0):.1f}")
-        self.ent_tri.grid(row=4, column=1, sticky="w")
-
-        tk.Label(self.adv_frame, text="Rahmen min (mm):").grid(row=5, column=0, sticky="w")
-        self.ent_border_min = tk.Entry(self.adv_frame, width=8)
-        self.ent_border_min.insert(0, f"{self.config.get('border_min_mm', 0.0):.1f}")
-        self.ent_border_min.grid(row=5, column=1, sticky="w")
-
-        tk.Label(self.adv_frame, text="Rahmen max (mm):").grid(row=6, column=0, sticky="w")
-        self.ent_border_max = tk.Entry(self.adv_frame, width=8)
-        self.ent_border_max.insert(0, f"{self.config.get('border_max_mm', 3.5):.1f}")
-        self.ent_border_max.grid(row=6, column=1, sticky="w")
-
-        tk.Button(self.adv_frame, text="Erweiterte Einstellung wiederherstellen", command=self._restore_advanced).grid(row=7, column=0, columnspan=2, pady=6)
+        self._build_advanced_frame()
 
         # show adv_frame only if custom_pct_var true
         if self.custom_pct_var.get():
@@ -224,6 +192,35 @@ class SettingsWindow(tk.Toplevel):
                 self.adv_frame.grid_forget()
         except Exception:
             pass
+    
+    def _build_advanced_frame(self):
+        """Create all advanced settings controls in the advanced frame."""
+        # Numeric entry fields mapping
+        entries_map = {
+            "side": (0, "Einzug zu den Seiten (mm):", "fixed_distance_mm", 3.5, ".2f"),
+            "bottom": (1, "Einzug/Abstand nach unten (mm):", "fixed_bottom_mm", 3.5, ".2f"),
+            "top": (2, "Puffer nach oben (mm):", "fixed_top_p_mm", 0.35, ".2f"),
+            "tri": (4, "Dreieck-Hypotenuse (%):", "triangle_percent", 50.0, ".1f"),
+            "border_min": (5, "Rahmen min (mm):", "border_min_mm", 0.0, ".1f"),
+            "border_max": (6, "Rahmen max (mm):", "border_max_mm", 3.5, ".1f"),
+        }
+        
+        for attr_name, (row, label, key, default, fmt) in entries_map.items():
+            tk.Label(self.adv_frame, text=label).grid(row=row, column=0, sticky="w")
+            entry = tk.Entry(self.adv_frame, width=8)
+            value = self.config.get(key, default)
+            entry.insert(0, f"{value:{fmt}}")
+            entry.grid(row=row, column=1, sticky="w")
+            setattr(self, f"ent_{attr_name}", entry)
+        
+        # Text background color button (row 3)
+        tk.Label(self.adv_frame, text="Text-Hintergrundfarbe:").grid(row=3, column=0, sticky="w")
+        self.text_bg = tk.StringVar(value=self.config.get("text_bg_color", "#FFFFFF"))
+        self.text_bg_btn = tk.Button(self.adv_frame, text="Farbe wählen", command=self._pick_text_bg)
+        self.text_bg_btn.grid(row=3, column=1, sticky="w")
+        
+        # Reset button
+        tk.Button(self.adv_frame, text="Erweiterte Einstellung wiederherstellen", command=self._restore_advanced).grid(row=7, column=0, columnspan=2, pady=6)
 
     def pick_color(self, idx):
         color = colorchooser.askcolor(initialcolor=self.config["colors"][idx])[1]
