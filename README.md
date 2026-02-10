@@ -6,6 +6,8 @@ Sehr geehrte Chronisten und Archivare, ich präsentiere das Projekt „Ahnentafe
 ![Portrait-Pro-Tool Hauptfenster](screenshots/Screenshot%202026-02-10%20121150.png)
 
 ### Ergebnis
+*Druckfertiges Ergebnis für den Fotodruck (z.B. dm). **Wichtig:** Beim Druckauftrag darauf achten, dass kein Rand abgeschnitten wird, da sich sonst die Verhältnisse ändern.*
+
 ![Beispiel-Output: Musterbruder, Max](screenshots/Musterbruder%20Max%20rec.%2010.02.2026.jpg)
 
 <details>
