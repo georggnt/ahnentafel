@@ -116,11 +116,11 @@ class SettingsWindow(tk.Toplevel):
         self.color_frame = tk.LabelFrame(container, text="Farb-Stapel (Oben -> Unten)", padx=10, pady=10)
         self.color_frame.grid(row=3, column=0, columnspan=4, sticky="ew", pady=10)
         
+        # Initialize background and custom vars early for update_color_rows
+        self.use_bg_var = tk.BooleanVar(value=self.config.get("use_background_image", False))
+        
         self.color_rows = []
         self.update_color_rows()
-
-        # Background image option
-        self.use_bg_var = tk.BooleanVar(value=self.config.get("use_background_image", False))
         tk.Checkbutton(container, text="Fahnen-Datei als Hintergrund verwenden", variable=self.use_bg_var, command=self._on_bg_toggle).grid(row=4, column=0, columnspan=4, sticky="w", pady=(4, 2))
         tk.Label(container, text="Datei:").grid(row=5, column=0, sticky="w")
         self.bg_path_var = tk.StringVar(value=self.config.get("background_image", ""))
