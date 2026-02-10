@@ -499,7 +499,7 @@ class PortraitProApp:
         if use_bg and self.config.get("background_image"):
             try:
                 src = Image.open(self.config.get("background_image")).convert("RGB")
-                flag_img = src.resize((self.CANVAS_W, self.PHOTO_H), Image.Resampling.LANCZOS)
+                flag_img = src.resize((self.PHOTO_W, self.PHOTO_H), Image.Resampling.LANCZOS)
             except Exception:
                 flag_img = None
 
@@ -509,7 +509,7 @@ class PortraitProApp:
             y_end = curr_y + seg_h if i < mode-1 else self.PHOTO_H
             if flag_img:
                 left_strip = flag_img.crop((0, curr_y, border_px, y_end))
-                right_strip = flag_img.crop((self.CANVAS_W - border_px, curr_y, self.CANVAS_W, y_end))
+                right_strip = flag_img.crop((self.PHOTO_W - border_px, curr_y, self.PHOTO_W, y_end))
                 draw_n.rectangle([0, curr_y, border_px, y_end], fill=None)
                 draw_n.rectangle([self.PHOTO_W-border_px, curr_y, self.PHOTO_W, y_end], fill=None)
                 nutz.paste(left_strip, (0, curr_y))
