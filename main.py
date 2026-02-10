@@ -352,6 +352,7 @@ class PortraitProApp:
     def refresh_config(self):
         self.config = ConfigHandler.load()
         if hasattr(self, 'main_frame'): self.main_frame.destroy()
+        if hasattr(self, 'toolbar'): self.toolbar.destroy()
         self.init_main_ui()
 
     def init_main_ui(self):
@@ -359,11 +360,11 @@ class PortraitProApp:
         GITHUB_URL = "https://github.com/georggnt/ahnentafel"
         self.root.title(f"Portrait-Pro-Tool {VERSION}")
         # toolbar: direct Optionen button, version and GitHub link on same line
-        toolbar = tk.Frame(self.root, padx=6, pady=4)
-        toolbar.pack(fill="x")
-        tk.Button(toolbar, text="Optionen", command=self.show_settings_menu).pack(side="left")
-        tk.Label(toolbar, text=VERSION).pack(side="left", padx=8)
-        gh = tk.Label(toolbar, text="GitHub", fg="blue", cursor="hand2")
+        self.toolbar = tk.Frame(self.root, padx=6, pady=4)
+        self.toolbar.pack(fill="x")
+        tk.Button(self.toolbar, text="Optionen", command=self.show_settings_menu).pack(side="left")
+        tk.Label(self.toolbar, text=VERSION).pack(side="left", padx=8)
+        gh = tk.Label(self.toolbar, text="GitHub", fg="blue", cursor="hand2")
         gh.pack(side="left")
         gh.bind("<Button-1>", lambda e: webbrowser.open(GITHUB_URL))
 
