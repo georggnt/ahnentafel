@@ -6,6 +6,15 @@ import json
 import os
 import webbrowser
 
+# Optional drag & drop support via tkinterdnd2 (if installed)
+try:
+    from tkinterdnd2 import TkinterDnD, DND_FILES
+    DND_AVAILABLE = True
+except Exception:
+    TkinterDnD = None
+    DND_FILES = None
+    DND_AVAILABLE = False
+
 CONFIG_FILE = "config.json"
 
 class ConfigHandler:
@@ -27,14 +36,27 @@ class ConfigHandler:
             "colors": ["#FFFFFF", "#008000", "#eb0000", "#FFFFFF", "#FFFFFF", "#FFFFFF"],
             "percentages": [25.0, 25.0, 25.0, 25.0, 0.0, 0.0],
             "custom_pct": False,
-            "fixed_distance_mm": 3.5, "fixed_bottom_mm": 3.5, "fixed_top_p_mm": 0.35, "border_default_mm": 1.0
+            "fixed_distance_mm": 3.5,
+            "fixed_bottom_mm": 3.5,
+            "fixed_top_p_mm": 0.35,
+            "border_default_mm": 1.0,
+            "border_min_mm": 0.0,
+            "border_max_mm": 3.5,
+            "text_bg_color": "#FFFFFF",
+            "triangle_percent": 50.0,
+            "use_background_image": False,
+            "background_image": ""
         }
 
     @staticmethod
     def load():
         if os.path.exists(CONFIG_FILE):
             try:
-                with open(CONFIG_FILE, "r") as f: return json.load(f)
+                with open(CONFIG_FILE, "r") as f:
+                    loaded = json.load(f)
+                base = ConfigHandler.get_default()
+                base.update(loaded)
+                return base
             except: return None
         return None
 
@@ -45,7 +67,7 @@ class ConfigHandler:
 class SettingsWindow(tk.Toplevel):
     def __init__(self, parent, callback, is_initial=False):
         super().__init__(parent)
-        self.title("Initial-Konfiguration v1.0.1")
+        self.title("Initial-Konfiguration v1.1.1")
         self.callback = callback
         self.is_initial = is_initial
         self.config = ConfigHandler.load() or ConfigHandler.get_default()
@@ -92,10 +114,26 @@ class SettingsWindow(tk.Toplevel):
         chk.grid(row=2, column=2)
 
         self.color_frame = tk.LabelFrame(container, text="Farb-Stapel (Oben -> Unten)", padx=10, pady=10)
-        self.color_frame.grid(row=3, column=0, columnspan=3, sticky="ew", pady=10)
+        self.color_frame.grid(row=3, column=0, columnspan=4, sticky="ew", pady=10)
         
         self.color_rows = []
         self.update_color_rows()
+
+        # Background image option
+        self.use_bg_var = tk.BooleanVar(value=self.config.get("use_background_image", False))
+        tk.Checkbutton(container, text="Fahnen-Datei als Hintergrund verwenden", variable=self.use_bg_var, command=self._on_bg_toggle).grid(row=4, column=0, columnspan=4, sticky="w", pady=(4, 2))
+        tk.Label(container, text="Datei:").grid(row=5, column=0, sticky="w")
+        self.bg_path_var = tk.StringVar(value=self.config.get("background_image", ""))
+        self.bg_entry = tk.Entry(container, textvariable=self.bg_path_var, width=42)
+        self.bg_entry.grid(row=5, column=1, columnspan=2, sticky="w")
+        tk.Button(container, text="Auswählen...", command=self._choose_background).grid(row=5, column=3, sticky="w")
+
+        if DND_AVAILABLE:
+            try:
+                self.drop_target_register(DND_FILES)
+                self.dnd_bind('<<Drop>>', self._on_bg_drop)
+            except Exception:
+                pass
 
         # Advanced settings frame (hidden unless checkbox enabled)
         self.adv_frame = tk.LabelFrame(container, text="Erweiterte Einstellungen", padx=10, pady=8)
@@ -115,13 +153,33 @@ class SettingsWindow(tk.Toplevel):
         self.ent_top.insert(0, f"{self.config.get('fixed_top_p_mm', 0.35):.2f}")
         self.ent_top.grid(row=2, column=1, sticky="w")
 
-        tk.Button(self.adv_frame, text="Erweiterte Einstellung wiederherstellen", command=self._restore_advanced).grid(row=3, column=0, columnspan=2, pady=6)
+        tk.Label(self.adv_frame, text="Text-Hintergrundfarbe:").grid(row=3, column=0, sticky="w")
+        self.text_bg = tk.StringVar(value=self.config.get("text_bg_color", "#FFFFFF"))
+        self.text_bg_btn = tk.Button(self.adv_frame, text="Farbe wählen", command=self._pick_text_bg)
+        self.text_bg_btn.grid(row=3, column=1, sticky="w")
+
+        tk.Label(self.adv_frame, text="Dreieck-Hypotenuse (%):").grid(row=4, column=0, sticky="w")
+        self.ent_tri = tk.Entry(self.adv_frame, width=8)
+        self.ent_tri.insert(0, f"{self.config.get('triangle_percent', 50.0):.1f}")
+        self.ent_tri.grid(row=4, column=1, sticky="w")
+
+        tk.Label(self.adv_frame, text="Rahmen min (mm):").grid(row=5, column=0, sticky="w")
+        self.ent_border_min = tk.Entry(self.adv_frame, width=8)
+        self.ent_border_min.insert(0, f"{self.config.get('border_min_mm', 0.0):.1f}")
+        self.ent_border_min.grid(row=5, column=1, sticky="w")
+
+        tk.Label(self.adv_frame, text="Rahmen max (mm):").grid(row=6, column=0, sticky="w")
+        self.ent_border_max = tk.Entry(self.adv_frame, width=8)
+        self.ent_border_max.insert(0, f"{self.config.get('border_max_mm', 3.5):.1f}")
+        self.ent_border_max.grid(row=6, column=1, sticky="w")
+
+        tk.Button(self.adv_frame, text="Erweiterte Einstellung wiederherstellen", command=self._restore_advanced).grid(row=7, column=0, columnspan=2, pady=6)
 
         # show adv_frame only if custom_pct_var true
         if self.custom_pct_var.get():
-            self.adv_frame.grid(row=5, column=0, columnspan=4, sticky="ew", pady=6)
+            self.adv_frame.grid(row=6, column=0, columnspan=4, sticky="ew", pady=6)
 
-        tk.Button(container, text="Einstellungen speichern", bg="#28a745", fg="white", font=("Arial", 10, "bold"), command=self.save_and_close).grid(row=4, column=0, columnspan=3, pady=10, sticky="ew")
+        tk.Button(container, text="Einstellungen speichern", bg="#28a745", fg="white", font=("Arial", 10, "bold"), command=self.save_and_close).grid(row=7, column=0, columnspan=4, pady=10, sticky="ew")
 
     def update_color_rows(self, event=None):
         for widget in self.color_frame.winfo_children(): widget.destroy()
@@ -131,6 +189,12 @@ class SettingsWindow(tk.Toplevel):
         if not self.custom_pct_var.get():
             defaults = ConfigHandler.get_default_percentages(num)
             for i, val in enumerate(defaults): self.config["percentages"][i] = val
+
+        # background image forces fixed, non-editable percentages
+        if self.use_bg_var.get():
+            defaults = self._get_bg_percentages(num)
+            for i, val in enumerate(defaults):
+                self.config["percentages"][i] = val
 
         for i in range(num):
             row = tk.Frame(self.color_frame)
@@ -144,15 +208,18 @@ class SettingsWindow(tk.Toplevel):
             ent.pack(side="left")
             tk.Label(row, text="%").pack(side="left")
             
-            if not self.custom_pct_var.get():
+            if self.use_bg_var.get() or not self.custom_pct_var.get():
                 ent.config(state="disabled")
+
+            if self.use_bg_var.get():
+                btn.config(state="disabled")
 
             self.color_rows.append({"btn": btn, "ent": ent})
 
         # toggle advanced frame visibility
         try:
             if self.custom_pct_var.get():
-                self.adv_frame.grid(row=5, column=0, columnspan=4, sticky="ew", pady=6)
+                self.adv_frame.grid(row=6, column=0, columnspan=4, sticky="ew", pady=6)
             else:
                 self.adv_frame.grid_forget()
         except Exception:
@@ -164,6 +231,42 @@ class SettingsWindow(tk.Toplevel):
             self.config["colors"][idx] = color
             self.color_rows[idx]["btn"].config(bg=color)
 
+    def _pick_text_bg(self):
+        color = colorchooser.askcolor(initialcolor=self.text_bg.get())[1]
+        if color:
+            self.text_bg.set(color)
+
+    def _get_bg_percentages(self, num):
+        # percent values (sum to 100)
+        if num == 2:
+            return [50.0, 50.0]
+        if num == 3:
+            return [33.0, 33.0, 34.0]
+        if num == 4:
+            return [25.0, 25.0, 25.0, 25.0]
+        if num == 5:
+            return [5.0, 30.0, 30.0, 30.0, 5.0]
+        if num == 6:
+            return [5.0, 22.5, 22.5, 22.5, 22.5, 5.0]
+        return ConfigHandler.get_default_percentages(num)
+
+    def _on_bg_toggle(self):
+        self.update_color_rows()
+
+    def _choose_background(self):
+        p = filedialog.askopenfilename(filetypes=[("Bilder", "*.jpg *.jpeg *.png *.bmp *.tif *.tiff")])
+        if p:
+            self.bg_path_var.set(p)
+
+    def _on_bg_drop(self, event):
+        data = event.data
+        if not data:
+            return
+        paths = re.findall(r"\{([^}]+)\}|([^\s]+)", data)
+        files = [a or b for a, b in paths if (a or b)]
+        if files:
+            self.bg_path_var.set(files[0])
+
     def _restore_advanced(self):
         if not messagebox.askyesno("Wiederherstellen", "Erweiterte Einstellungen auf Standardwerte zurücksetzen?"):
             return
@@ -171,6 +274,10 @@ class SettingsWindow(tk.Toplevel):
         self.ent_side.delete(0, tk.END); self.ent_side.insert(0, f"{d.get('fixed_distance_mm',3.5):.2f}")
         self.ent_bottom.delete(0, tk.END); self.ent_bottom.insert(0, f"{d.get('fixed_bottom_mm',3.5):.2f}")
         self.ent_top.delete(0, tk.END); self.ent_top.insert(0, f"{d.get('fixed_top_p_mm',0.35):.2f}")
+        self.text_bg.set(d.get('text_bg_color', "#FFFFFF"))
+        self.ent_tri.delete(0, tk.END); self.ent_tri.insert(0, f"{d.get('triangle_percent',50.0):.1f}")
+        self.ent_border_min.delete(0, tk.END); self.ent_border_min.insert(0, f"{d.get('border_min_mm',0.0):.1f}")
+        self.ent_border_max.delete(0, tk.END); self.ent_border_max.insert(0, f"{d.get('border_max_mm',3.5):.1f}")
 
     def save_and_close(self):
         try:
@@ -186,20 +293,36 @@ class SettingsWindow(tk.Toplevel):
             self.config["canvas_w_cm"] = float(self.ent_cw.get())
             self.config["bund_mode"] = self.mode_var.get()
             self.config["custom_pct"] = self.custom_pct_var.get()
-            for i in range(self.config["bund_mode"]):
-                self.config["percentages"][i] = float(self.color_rows[i]["ent"].get())
+            self.config["use_background_image"] = bool(self.use_bg_var.get())
+            self.config["background_image"] = self.bg_path_var.get().strip()
+
+            if self.use_bg_var.get():
+                pcts = self._get_bg_percentages(self.config["bund_mode"])
+                for i, val in enumerate(pcts):
+                    self.config["percentages"][i] = val
+            else:
+                for i in range(self.config["bund_mode"]):
+                    self.config["percentages"][i] = float(self.color_rows[i]["ent"].get())
+
             if self.custom_pct_var.get():
                 # advanced spacing values (mm) with 2 decimal places
                 try:
                     side = round(float(self.ent_side.get().strip().replace(',','.')), 2)
                     bottom = round(float(self.ent_bottom.get().strip().replace(',','.')), 2)
                     top = round(float(self.ent_top.get().strip().replace(',','.')), 2)
+                    tri = round(float(self.ent_tri.get().strip().replace(',','.')), 1)
+                    bmin = round(float(self.ent_border_min.get().strip().replace(',','.')), 1)
+                    bmax = round(float(self.ent_border_max.get().strip().replace(',','.')), 1)
                 except Exception:
                     messagebox.showerror("Fehler", "Ungültige erweiterte Einstellungen. Bitte Zahlen im Format 0.00 verwenden.")
                     return
                 self.config["fixed_distance_mm"] = side
                 self.config["fixed_bottom_mm"] = bottom
                 self.config["fixed_top_p_mm"] = top
+                self.config["triangle_percent"] = tri
+                self.config["border_min_mm"] = bmin
+                self.config["border_max_mm"] = bmax
+                self.config["text_bg_color"] = self.text_bg.get()
 
             ConfigHandler.save(self.config)
             self.callback()
@@ -235,7 +358,7 @@ class PortraitProApp:
         self.init_main_ui()
 
     def init_main_ui(self):
-        VERSION = "v1.0.1"
+        VERSION = "v1.1.1"
         GITHUB_URL = "https://github.com/georggnt/ahnentafel"
         self.root.title(f"Portrait-Pro-Tool {VERSION}")
         # toolbar: direct Optionen button, version and GitHub link on same line
@@ -258,7 +381,8 @@ class PortraitProApp:
         self.CANVAS_H = int(self.config["canvas_h_cm"] * 10 * self.MM_TO_PX)
         
         # Katheten auf 50% der kürzesten Seite
-        self.TRI_SIZE = int(min(self.PHOTO_W, self.PHOTO_H) * 0.50)
+        tri_pct = float(self.config.get("triangle_percent", 50.0))
+        self.TRI_SIZE = int(min(self.PHOTO_W, self.PHOTO_H) * (tri_pct / 100.0))
         
         self.raw_img, self.current_scale = None, 1.0
         self.pan_x = self.pan_y = 0
@@ -270,9 +394,17 @@ class PortraitProApp:
         tk.Button(ctrl, text="Bild laden", command=self.load_image).grid(row=0, column=0, padx=10)
         tk.Label(ctrl, text="Rahmen (mm):").grid(row=0, column=1)
         self.border_val = tk.DoubleVar(value=self.config["border_default_mm"])
-        tk.Scale(ctrl, from_=0.0, to=5.0, resolution=0.1, orient=tk.HORIZONTAL, variable=self.border_val, command=self.on_setting_change).grid(row=0, column=2, padx=5)
+        min_b = float(self.config.get("border_min_mm", 0.0))
+        max_b = float(self.config.get("border_max_mm", 3.5))
+        self.border_scale = tk.Scale(ctrl, from_=min_b, to=max_b, resolution=0.1, orient=tk.HORIZONTAL, variable=self.border_val, command=self.on_setting_change)
+        self.border_scale.grid(row=0, column=2, padx=5)
+        self.border_entry_var = tk.StringVar(value=f"{self.border_val.get():.1f}")
+        self.border_entry = tk.Entry(ctrl, width=5, textvariable=self.border_entry_var)
+        self.border_entry.grid(row=0, column=3, padx=4)
+        self.border_entry.bind("<Return>", self._on_border_entry)
+        self.border_entry.bind("<FocusOut>", self._on_border_entry)
         self.use_triangle_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(ctrl, text="Dreieck", variable=self.use_triangle_var, command=self.update_preview).grid(row=0, column=3)
+        tk.Checkbutton(ctrl, text="Dreieck", variable=self.use_triangle_var, command=self.update_preview).grid(row=0, column=4)
 
         # suggestion placeholder for name text
         self.entry_text = tk.Entry(self.main_frame, width=65)
@@ -364,19 +496,36 @@ class PortraitProApp:
         
         # Rahmen
         mode = self.config["bund_mode"]; cols = self.config["colors"]; pcts = self.config["percentages"]
+        use_bg = self.config.get("use_background_image", False)
+        flag_img = None
+        if use_bg and self.config.get("background_image"):
+            try:
+                src = Image.open(self.config.get("background_image")).convert("RGB")
+                flag_img = src.resize((self.CANVAS_W, self.PHOTO_H), Image.Resampling.LANCZOS)
+            except Exception:
+                flag_img = None
+
         curr_y = 0
         for i in range(mode):
             seg_h = int((pcts[i] / 100.0) * self.PHOTO_H)
             y_end = curr_y + seg_h if i < mode-1 else self.PHOTO_H
-            draw_n.rectangle([0, curr_y, border_px, y_end], fill=cols[i])
-            draw_n.rectangle([self.PHOTO_W-border_px, curr_y, self.PHOTO_W, y_end], fill=cols[i])
+            if flag_img:
+                left_strip = flag_img.crop((0, curr_y, border_px, y_end))
+                right_strip = flag_img.crop((self.CANVAS_W - border_px, curr_y, self.CANVAS_W, y_end))
+                draw_n.rectangle([0, curr_y, border_px, y_end], fill=None)
+                draw_n.rectangle([self.PHOTO_W-border_px, curr_y, self.PHOTO_W, y_end], fill=None)
+                nutz.paste(left_strip, (0, curr_y))
+                nutz.paste(right_strip, (self.PHOTO_W - border_px, curr_y))
+            else:
+                draw_n.rectangle([0, curr_y, border_px, y_end], fill=cols[i])
+                draw_n.rectangle([self.PHOTO_W-border_px, curr_y, self.PHOTO_W, y_end], fill=cols[i])
             curr_y = y_end
         
         cont = Image.new("RGB", (eff_w, eff_h), "#FFFFFF")
         cont.paste(crop, (0, 0)); draw_c = ImageDraw.Draw(cont)
         if text != "":
             ry0 = eff_h - rect_h
-            if not is_below: draw_c.rectangle([0, ry0, eff_w, eff_h], fill="#FFFFFF")
+            draw_c.rectangle([0, ry0, eff_w, eff_h], fill=self.config.get("text_bg_color", "#FFFFFF"))
             tw = font.getbbox(text)[2] - font.getbbox(text)[0]
             draw_c.text((side_px + ((eff_w - 2*side_px - tw)//2), eff_h - bottom_px - font_h), text, fill="#000000", font=font)
         
@@ -386,13 +535,16 @@ class PortraitProApp:
             draw_n.line([(self.PHOTO_W-self.TRI_SIZE, 0), (self.PHOTO_W, self.TRI_SIZE)], fill="#FFFFFF", width=1)
         
         bg = Image.new("RGB", (self.CANVAS_W, self.CANVAS_H), "#000000")
-        draw_bg = ImageDraw.Draw(bg)
-        curr_y = 0
-        for i in range(mode):
-            seg_h = int((pcts[i] / 100.0) * self.PHOTO_H)
-            y_end = curr_y + seg_h if i < mode-1 else self.PHOTO_H
-            draw_bg.rectangle([0, curr_y, self.CANVAS_W, y_end], fill=cols[i])
-            curr_y = y_end
+        if flag_img:
+            bg.paste(flag_img, (0, 0))
+        else:
+            draw_bg = ImageDraw.Draw(bg)
+            curr_y = 0
+            for i in range(mode):
+                seg_h = int((pcts[i] / 100.0) * self.PHOTO_H)
+                y_end = curr_y + seg_h if i < mode-1 else self.PHOTO_H
+                draw_bg.rectangle([0, curr_y, self.CANVAS_W, y_end], fill=cols[i])
+                curr_y = y_end
         
         bg.paste(nutz, (0, 0))
         return bg
@@ -419,6 +571,17 @@ class PortraitProApp:
         self.pan_y = max(0, min(self.raw_img.height * self.current_scale - avail_h, self.pan_y))
 
     def on_setting_change(self, *a): self.recalc_image_fit(); self.update_preview()
+    def _on_border_entry(self, e=None):
+        try:
+            v = float(self.border_entry_var.get().strip().replace(',','.'))
+        except Exception:
+            v = self.border_val.get()
+        min_b = float(self.config.get("border_min_mm", 0.0))
+        max_b = float(self.config.get("border_max_mm", 3.5))
+        v = max(min_b, min(max_b, v))
+        self.border_val.set(v)
+        self.border_entry_var.set(f"{v:.1f}")
+        self.on_setting_change()
     def _clear_placeholder(self):
         if self.entry_text.get() == self._placeholder_text:
             self.entry_text.delete(0, tk.END)
@@ -454,6 +617,6 @@ class PortraitProApp:
         if p: self.create_final_image().save(p, quality=98, dpi=(300,300))
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = TkinterDnD.Tk() if DND_AVAILABLE else tk.Tk()
     app = PortraitProApp(root)
     root.mainloop()
