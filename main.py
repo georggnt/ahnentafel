@@ -489,9 +489,6 @@ class PortraitProApp:
         resized = self.raw_img.resize((int(self.raw_img.width * self.current_scale), int(self.raw_img.height * self.current_scale)), Image.Resampling.LANCZOS)
         crop = resized.crop((int(self.pan_x), int(self.pan_y), int(self.pan_x + eff_w), int(self.pan_y + avail_h)))
         
-        nutz = Image.new("RGB", (self.PHOTO_W, self.PHOTO_H), "#FFFFFF")
-        draw_n = ImageDraw.Draw(nutz)
-        
         # Rahmen
         mode = self.config["bund_mode"]; cols = self.config["colors"]; pcts = self.config["percentages"]
         use_bg = self.config.get("use_background_image", False)
@@ -503,18 +500,20 @@ class PortraitProApp:
             except Exception:
                 flag_img = None
 
+        # If using background image, paste it as the entire base; otherwise start with white
+        if flag_img:
+            nutz = flag_img.copy()
+        else:
+            nutz = Image.new("RGB", (self.PHOTO_W, self.PHOTO_H), "#FFFFFF")
+        
+        draw_n = ImageDraw.Draw(nutz)
+        
+        # Draw borders (left/right stripes for each color segment OR left/right from background)
         curr_y = 0
         for i in range(mode):
             seg_h = int((pcts[i] / 100.0) * self.PHOTO_H)
             y_end = curr_y + seg_h if i < mode-1 else self.PHOTO_H
-            if flag_img:
-                left_strip = flag_img.crop((0, curr_y, border_px, y_end))
-                right_strip = flag_img.crop((self.PHOTO_W - border_px, curr_y, self.PHOTO_W, y_end))
-                draw_n.rectangle([0, curr_y, border_px, y_end], fill=None)
-                draw_n.rectangle([self.PHOTO_W-border_px, curr_y, self.PHOTO_W, y_end], fill=None)
-                nutz.paste(left_strip, (0, curr_y))
-                nutz.paste(right_strip, (self.PHOTO_W - border_px, curr_y))
-            else:
+            if not flag_img:
                 draw_n.rectangle([0, curr_y, border_px, y_end], fill=cols[i])
                 draw_n.rectangle([self.PHOTO_W-border_px, curr_y, self.PHOTO_W, y_end], fill=cols[i])
             curr_y = y_end
