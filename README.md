@@ -1,6 +1,21 @@
 # Ahnentafel Optimaldruck 
 Sehr geehrte Chronisten und Archivare, ich präsentiere das Projekt „Ahnentafel Optimaldruck“. Dieses Werkzeug wurde entwickelt, um Porträts für Ahnentafeln so aufzubereiten, dass sie in Serie ein konsistentes Bild zum Druck ergeben.
+## Vorschau
 
+### Hauptanwendung
+![Portrait-Pro-Tool Hauptfenster](screenshots/Screenshot%202026-02-10%20121150.png)
+
+### Ergebnis
+![Beispiel-Output: Musterbruder, Max](screenshots/Musterbruder%20Max%20rec.%2010.02.2026.jpg)
+
+<details>
+<summary>Weitere Screenshots anzeigen</summary>
+
+![Einstellungen 1](screenshots/Screenshot%202026-02-10%20130230.png)
+![Einstellungen 2](screenshots/Screenshot%202026-02-10%20130240.png)
+![Einstellungen 3](screenshots/Screenshot%202026-02-10%20133346.png)
+
+</details>
 ## Die Highlights
 Individuelle Rahmengrößen: Das Tool ist exakt auf spezifische Rahmenmaße anpassbar.
 
