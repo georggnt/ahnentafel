@@ -83,6 +83,13 @@ class SettingsWindow(tk.Toplevel):
                 pass
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         self.init_ui()
+        # Position window towards the top of the screen
+        self.update_idletasks()
+        screen_height = self.winfo_screenheight()
+        win_height = self.winfo_height()
+        x_pos = (self.winfo_screenwidth() - self.winfo_width()) // 2
+        y_pos = max(50, int(screen_height * 0.1))  # 10% from top, min 50px
+        self.geometry(f"+{x_pos}+{y_pos}")
 
     def init_ui(self):
         container = tk.Frame(self, padx=20, pady=20)
@@ -201,7 +208,7 @@ class SettingsWindow(tk.Toplevel):
             "side": (0, "Einzug zu den Seiten (mm):", "fixed_distance_mm", 3.5, ".2f"),
             "bottom": (1, "Einzug/Abstand nach unten (mm):", "fixed_bottom_mm", 3.5, ".2f"),
             "top": (2, "Puffer nach oben (mm):", "fixed_top_p_mm", 0.35, ".2f"),
-            "tri": (4, "Dreieck-Hypotenuse (%):", "triangle_percent", 50.0, ".1f"),
+            "tri": (4, "Dreieck-Hypotenuse (% der Bildbreite):", "triangle_percent", 50.0, ".1f"),
             "border_min": (5, "Rahmen min (mm):", "border_min_mm", 0.0, ".1f"),
             "border_max": (6, "Rahmen max (mm):", "border_max_mm", 3.5, ".1f"),
         }
