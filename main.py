@@ -477,7 +477,7 @@ class PortraitProApp:
             while font.getbbox(text)[2] - font.getbbox(text)[0] < (self.PHOTO_W - 2*int(self.config["fixed_distance_mm"]*self.MM_TO_PX)) and fs < 400:
                 fs += 1; font = ImageFont.truetype("arial.ttf", fs)
             font_h = font.getbbox(text)[3] - font.getbbox(text)[1]
-            rect_h = font_h + cur_dist_px + top_p_px
+            rect_h = font_h + bottom_px + top_p_px
         else:
             font = ImageFont.truetype("arial.ttf", 12)
             font_h = 0
