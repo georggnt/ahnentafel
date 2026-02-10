@@ -43,6 +43,7 @@ class ConfigHandler:
             "border_min_mm": 0.0,
             "border_max_mm": 3.5,
             "text_bg_color": "#FFFFFF",
+            "text_color": "#000000",
             "triangle_percent": 50.0,
             "use_background_image": False,
             "background_image": ""
@@ -219,8 +220,14 @@ class SettingsWindow(tk.Toplevel):
         self.text_bg_btn = tk.Button(self.adv_frame, text="Farbe wählen", command=self._pick_text_bg)
         self.text_bg_btn.grid(row=3, column=1, sticky="w")
         
+        # Text color button (row 3.5 / spanning column 2-3)
+        tk.Label(self.adv_frame, text="Textfarbe:").grid(row=3, column=2, sticky="w", padx=(10, 0))
+        self.text_color = tk.StringVar(value=self.config.get("text_color", "#000000"))
+        self.text_color_btn = tk.Button(self.adv_frame, text="Farbe wählen", command=self._pick_text_color)
+        self.text_color_btn.grid(row=3, column=3, sticky="w")
+        
         # Reset button
-        tk.Button(self.adv_frame, text="Erweiterte Einstellung wiederherstellen", command=self._restore_advanced).grid(row=7, column=0, columnspan=2, pady=6)
+        tk.Button(self.adv_frame, text="Erweiterte Einstellung wiederherstellen", command=self._restore_advanced).grid(row=7, column=0, columnspan=4, pady=6)
 
     def pick_color(self, idx):
         color = colorchooser.askcolor(initialcolor=self.config["colors"][idx])[1]
@@ -232,6 +239,11 @@ class SettingsWindow(tk.Toplevel):
         color = colorchooser.askcolor(initialcolor=self.text_bg.get())[1]
         if color:
             self.text_bg.set(color)
+    
+    def _pick_text_color(self):
+        color = colorchooser.askcolor(initialcolor=self.text_color.get())[1]
+        if color:
+            self.text_color.set(color)
 
     def _get_bg_percentages(self, num):
         # percent values (sum to 100)
@@ -272,6 +284,7 @@ class SettingsWindow(tk.Toplevel):
         self.ent_bottom.delete(0, tk.END); self.ent_bottom.insert(0, f"{d.get('fixed_bottom_mm',3.5):.2f}")
         self.ent_top.delete(0, tk.END); self.ent_top.insert(0, f"{d.get('fixed_top_p_mm',0.35):.2f}")
         self.text_bg.set(d.get('text_bg_color', "#FFFFFF"))
+        self.text_color.set(d.get('text_color', "#000000"))
         self.ent_tri.delete(0, tk.END); self.ent_tri.insert(0, f"{d.get('triangle_percent',50.0):.1f}")
         self.ent_border_min.delete(0, tk.END); self.ent_border_min.insert(0, f"{d.get('border_min_mm',0.0):.1f}")
         self.ent_border_max.delete(0, tk.END); self.ent_border_max.insert(0, f"{d.get('border_max_mm',3.5):.1f}")
@@ -320,6 +333,7 @@ class SettingsWindow(tk.Toplevel):
                 self.config["border_min_mm"] = bmin
                 self.config["border_max_mm"] = bmax
                 self.config["text_bg_color"] = self.text_bg.get()
+                self.config["text_color"] = self.text_color.get()
 
             ConfigHandler.save(self.config)
             self.callback()
@@ -524,7 +538,7 @@ class PortraitProApp:
             ry0 = eff_h - rect_h
             draw_c.rectangle([0, ry0, eff_w, eff_h], fill=self.config.get("text_bg_color", "#FFFFFF"))
             tw = font.getbbox(text)[2] - font.getbbox(text)[0]
-            draw_c.text((side_px + ((eff_w - 2*side_px - tw)//2), eff_h - bottom_px - font_h), text, fill="#000000", font=font)
+            draw_c.text((side_px + ((eff_w - 2*side_px - tw)//2), eff_h - bottom_px - font_h), text, fill=self.config.get("text_color", "#000000"), font=font)
         
         nutz.paste(cont, (border_px, border_px))
         if self.use_triangle_var.get():
