@@ -1,15 +1,15 @@
 {
-    "photo_h_mm": 90.0,
-    "photo_w_mm": 70.0,
-    "canvas_h_cm": 15.0,
-    "canvas_w_cm": 10.0,
+    "photo_h_mm": 100.0,
+    "photo_w_mm": 71.0,
+    "canvas_h_mm": 120.0,
+    "canvas_w_mm": 90.0,
     "bund_mode": 4,
     "colors": [
         "#FFFFFF",
         "#008000",
         "#eb0000",
-        "#FFFFFF",
-        "#FFFFFF",
+        "#ffffff",
+        "#8080c0",
         "#FFFFFF"
     ],
     "percentages": [
@@ -17,11 +17,22 @@
         25.0,
         25.0,
         25.0,
-        0.0,
-        0.0
+        22.5,
+        5.0
     ],
     "custom_pct": false,
-    "fixed_distance_mm": 3.5,
-    "fixed_top_p_mm": 0.35,
-    "border_default_mm": 1.0
+    "show_advanced": true,
+    "background_source": "colors",
+    "fixed_distance_mm": 4.0,
+    "fixed_bottom_mm": 5.0,
+    "fixed_top_p_mm": 0.55,
+    "border_default_mm": 1.7,
+    "border_min_mm": 1.5,
+    "border_max_mm": 5.5,
+    "text_bg_color": "#ffffff",
+    "text_color": "#000000",
+    "text_font": "calibri",
+    "triangle_percent": 50.0,
+    "use_background_image": false,
+    "background_image": "C:/Users/GeGae/OneDrive/Downloads/k1.JPG"
 }
